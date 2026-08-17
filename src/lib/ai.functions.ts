@@ -13,12 +13,13 @@ export const nexusChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ChatInput.parse(input))
   .handler(async ({ data, context }) => {
-    const apiKey = process.env["OPENROUTER_API_KEY"];
-    if (!apiKey) throw new Error("Missing OPENROUTER_API_KEY");
+    const { resolveChatProvider } = await import("./ai/provider.server");
+    const provider = resolveChatProvider();
 
     const { toolDeclarations, MUTATING_TOOLS } = await import("./ai/tool-schemas");
     const { runTool } = await import("./ai/registry.server");
     const toolCtx = { supabase: context.supabase, userId: context.userId };
+
 
     const systemPrompt = `You are Nexus, a calm and precise AI operating system for knowledge work, and an active co-pilot inside the user's Nexus workspace.
 
