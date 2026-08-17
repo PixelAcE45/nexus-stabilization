@@ -47,19 +47,20 @@ Current date and time (UTC): ${new Date().toISOString()}`;
     let mutated = false;
 
     for (let step = 0; step < 6; step += 1) {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch(provider.url, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${provider.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: provider.model,
           messages,
           tools: toolDeclarations,
           max_tokens: 1200,
         }),
       });
+
 
       if (!response.ok) {
         const detail = await response.text();
