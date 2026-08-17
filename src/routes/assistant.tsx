@@ -106,7 +106,18 @@ function AssistantPage() {
     } catch (error) {
       const wait = MIN_THINKING_MS - (Date.now() - startedAt);
       if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      toast.error(error instanceof Error ? error.message : "Nexus could not answer that");
+      const detail = error instanceof Error ? error.message : "Nexus could not answer that";
+      toast.error(detail);
+      setMessages((current) => [
+        ...current,
+        {
+          id: id + 1,
+          role: "nexus",
+          text: `I couldn't answer that.\n\n**${detail}**\n\nTry sending it again in a moment.`,
+          error: true,
+        },
+      ]);
+
     } finally {
       setPending(false);
     }
