@@ -8,24 +8,34 @@ export function useProgressiveText(text: string, enabled: boolean) {
   const [shown, setShown] = useState(enabled ? "" : text);
 
   useEffect(() => {
-    if (!enabled) {
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (!enabled || reducedMotion || text.length === 0) {
       setShown(text);
       return;
     }
+
+    // Keep the reveal under ~1.2s and cap the number of renders: markdown is
+    // re-parsed on every commit, so a 16ms tick makes long answers janky.
+    const TICK_MS = 45;
+    const MAX_TICKS = 28;
+    const step = Math.max(3, Math.ceil(text.length / MAX_TICKS));
+
     let index = 0;
     setShown("");
-    // reveal in small chunks, faster for long answers so it never feels slow
-    const step = Math.max(2, Math.round(text.length / 220));
     const timer = window.setInterval(() => {
       index = Math.min(text.length, index + step);
       setShown(text.slice(0, index));
       if (index >= text.length) window.clearInterval(timer);
-    }, 16);
+    }, TICK_MS);
     return () => window.clearInterval(timer);
   }, [text, enabled]);
 
   return shown;
 }
+
 
 export function AiResponse({
   text,
