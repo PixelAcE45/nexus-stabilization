@@ -88,10 +88,13 @@ function AssistantPage() {
     try {
       const result = await chat({
         data: {
-          messages: next.map((message) => ({
-            role: message.role === "user" ? ("user" as const) : ("assistant" as const),
-            content: message.text,
-          })),
+          messages: next
+            .filter((message) => !message.error)
+            .map((message) => ({
+              role: message.role === "user" ? ("user" as const) : ("assistant" as const),
+              content: message.text,
+            })),
+
         },
       });
       const wait = MIN_THINKING_MS - (Date.now() - startedAt);
