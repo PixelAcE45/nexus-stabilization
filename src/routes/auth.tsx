@@ -23,6 +23,8 @@ export const Route = createFileRoute("/auth")({
         property: "og:description",
         content: "Access your Nexus AI operating system with email or Google.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
@@ -46,14 +48,21 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        toast.success("Account created", { description: "You can now sign in to Nexus." });
-        setMode("signin");
+        if (data.session) {
+          toast.success("Welcome to Nexus");
+          navigate({ to: "/" });
+        } else {
+          toast.success("Check your email", {
+            description: "Open the confirmation link to finish creating your account.",
+          });
+          setMode("signin");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -68,17 +77,28 @@ function AuthPage() {
   };
 
   const google = async () => {
+    if (busy) return;
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+        extraParams: { prompt: "select_account" },
+      });
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        throw error ?? new Error("Google did not return a valid sign-in session.");
+      }
+      toast.success("Welcome to Nexus");
+      navigate({ to: "/" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Google sign-in could not be completed.";
+      toast.error("Google sign-in failed", { description: message });
+    } finally {
       setBusy(false);
-      toast.error("Google sign-in failed");
-      return;
     }
-    if (result.redirected) return;
-    navigate({ to: "/" });
   };
 
   return (
